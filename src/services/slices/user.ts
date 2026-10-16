@@ -38,9 +38,11 @@ const saveTokens = (accessToken: string, refreshTokenValue: string): void => {
   localStorage.setItem(REFRESH_TOKEN_KEY, refreshTokenValue);
 };
 
-const clearTokens = (): void => {
+/* При выходе очищаем localStorage целиком: кроме refreshToken там может
+   остаться, например, флаг resetPassword со страницы восстановления пароля. */
+const clearUserData = (): void => {
   deleteCookie(ACCESS_TOKEN_KEY);
-  localStorage.removeItem(REFRESH_TOKEN_KEY);
+  localStorage.clear();
 };
 
 export const registerUser = createAsyncThunk(
@@ -87,7 +89,7 @@ export const logoutUser = createAsyncThunk('user/logout', async (): Promise<void
   try {
     await logoutApi();
   } finally {
-    clearTokens();
+    clearUserData();
   }
 });
 
