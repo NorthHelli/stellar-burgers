@@ -1,21 +1,41 @@
 import { Preloader, OrderInfoUI } from '@ui';
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
+import { useParams } from 'react-router-dom';
 
-import type { TIngredient } from '@utils-types';
+import { selectFeedOrders } from '@services/slices/feed';
+import { selectIngredients } from '@services/slices/ingredients';
+import { fetchOrderByNumber, selectOrderInfo } from '@services/slices/order';
+import { selectProfileOrders } from '@services/slices/profile-orders';
+import { useDispatch, useSelector } from '@services/store';
+
+import type { TIngredient, TOrder } from '@utils-types';
 
 export const OrderInfo = (): React.JSX.Element => {
-  /** TODO: взять переменные orderData и ingredients из стора */
-  const orderData = {
-    createdAt: '',
-    ingredients: [],
-    _id: '',
-    status: '',
-    name: '',
-    updatedAt: 'string',
-    number: 0,
-  };
+  const dispatch = useDispatch();
+  const { number } = useParams();
+  const orderNumber = Number(number);
 
-  const ingredients: TIngredient[] = [];
+  /* Заказ ищем в уже загруженных ленте и истории, а при прямом переходе
+     по ссылке запрашиваем его с сервера по номеру. */
+  const orderData = useSelector((state) => {
+    const isSameOrder = ({ number }: Pick<TOrder, 'number'>): boolean =>
+      number === orderNumber;
+    const loadedOrder = selectOrderInfo(state);
+
+    return (
+      selectFeedOrders(state).find(isSameOrder) ??
+      selectProfileOrders(state).find(isSameOrder) ??
+      (loadedOrder && isSameOrder(loadedOrder) ? loadedOrder : null)
+    );
+  });
+
+  const ingredients = useSelector(selectIngredients);
+
+  useEffect(() => {
+    if (!orderData && orderNumber) {
+      void dispatch(fetchOrderByNumber(orderNumber));
+    }
+  }, [dispatch, orderData, orderNumber]);
 
   /**
    * использование useMemo не обязательно
